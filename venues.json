@@ -1,0 +1,863 @@
+{
+  "conferences": {
+    "AAAI": [
+      "AAAI Conference on Artificial Intelligence",
+      "Association for the Advancement of Artificial Intelligence",
+      "Association for the Advance of Artificial Intelligence"
+    ],
+    "IJCAI": [
+      "International Joint Conference on Artificial Intelligence"
+    ],
+    "ICLR": [
+      "International Conference on Learning Representations"
+    ],
+    "ICML": [
+      "International Conference on Machine Learning"
+    ],
+    "NeurIPS": [
+      "Neural Information Processing Systems",
+      "Advances in Neural Information Processing Systems",
+      "NIPS"
+    ],
+    "AISTATS": [
+      "Artificial Intelligence and Statistics"
+    ],
+    "UAI": [
+      "Uncertainty in Artificial Intelligence"
+    ],
+    "COLT": [
+      "Conference on Learning Theory",
+      "Conference on Computational Learning Theory"
+    ],
+    "CoLM": [
+      "Conference on Language Modeling"
+    ],
+    "ECAI": [
+      "European Conference on Artificial Intelligence"
+    ],
+    "ACML": [
+      "Asian Conference on Machine Learning"
+    ],
+    "ECML-PKDD": [
+      "European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases",
+      "ECML PKDD"
+    ],
+    "AAMAS": [
+      "Autonomous Agents and Multiagent Systems",
+      "Autonomous Agents and Multi-agent Systems"
+    ],
+    "ICAPS": [
+      "International Conference on Automated Planning and Scheduling"
+    ],
+    "KR": [
+      "Principles of Knowledge Representation and Reasoning"
+    ],
+    "ACL": [
+      "Annual Meeting of the Association for Computational Linguistics",
+      "Association for Computational Linguistics"
+    ],
+    "EMNLP": [
+      "Empirical Methods in Natural Language Processing"
+    ],
+    "NAACL": [
+      "North American Chapter of the Association for Computational Linguistics",
+      "Nations of the Americas Chapter of the Association for Computational Linguistics"
+    ],
+    "EACL": [
+      "European Chapter of the Association for Computational Linguistics"
+    ],
+    "AACL": [
+      "Asia Pacific Chapter of the Association for Computational Linguistics",
+      "Asian Chapter of the Association for Computational Linguistics"
+    ],
+    "COLING": [
+      "International Conference on Computational Linguistics"
+    ],
+    "LREC-COLING": [
+      "Joint International Conference on Computational Linguistics Language Resources and Evaluation",
+      "LREC COLING"
+    ],
+    "LREC": [
+      "Language Resources and Evaluation Conference"
+    ],
+    "CoNLL": [
+      "Conference on Computational Natural Language Learning"
+    ],
+    "NLPCC": [
+      "Natural Language Processing and Chinese Computing"
+    ],
+    "CCL": [
+      "China National Conference on Chinese Computational Linguistics",
+      "Chinese Computational Linguistics"
+    ],
+    "*SEM": [
+      "Joint Conference on Lexical and Computational Semantics"
+    ],
+    "SemEval": [
+      "International Workshop on Semantic Evaluation"
+    ],
+    "SIGDIAL": [
+      "Special Interest Group on Discourse and Dialogue",
+      "SIGdial Meeting on Discourse and Dialogue"
+    ],
+    "INTERSPEECH": [
+      "Conference of the International Speech Communication Association"
+    ],
+    "ICASSP": [
+      "International Conference on Acoustics Speech and Signal Processing"
+    ],
+    "CVPR": [
+      "International Conference on Computer Vision and Pattern Recognition",
+      "Conference on Computer Vision and Pattern Recognition",
+      "Computer Vision and Pattern Recognition"
+    ],
+    "ICCV": [
+      "International Conference on Computer Vision"
+    ],
+    "ECCV": [
+      "European Conference on Computer Vision"
+    ],
+    "WACV": [
+      "Winter Conference on Applications of Computer Vision"
+    ],
+    "ACCV": [
+      "Asian Conference on Computer Vision"
+    ],
+    "BMVC": [
+      "British Machine Vision Conference"
+    ],
+    "3DV": [
+      "International Conference on 3D Vision"
+    ],
+    "ICIP": [
+      "International Conference on Image Processing"
+    ],
+    "ICPR": [
+      "International Conference on Pattern Recognition"
+    ],
+    "ICDAR": [
+      "International Conference on Document Analysis and Recognition"
+    ],
+    "MICCAI": [
+      "Medical Image Computing and Computer Assisted Intervention",
+      "Medical Image Computing and Computer-Assisted Intervention"
+    ],
+    "ACM MM": [
+      "ACM International Conference on Multimedia",
+      "ACM Multimedia",
+      "ACMMM"
+    ],
+    "ICME": [
+      "International Conference on Multimedia and Expo"
+    ],
+    "ICMR": [
+      "International Conference on Multimedia Retrieval"
+    ],
+    "SIGGRAPH": [
+      "ACM SIGGRAPH"
+    ],
+    "Eurographics": [],
+    "IEEE VIS": [
+      "IEEE Visualization"
+    ],
+    "ICRA": [
+      "International Conference on Robotics and Automation"
+    ],
+    "IROS": [
+      "International Conference on Intelligent Robots and Systems"
+    ],
+    "RSS": [
+      "Robotics Science and Systems"
+    ],
+    "CoRL": [
+      "Conference on Robot Learning"
+    ],
+    "SIGIR-AP": [
+      "Information Retrieval in the Asia Pacific Region",
+      "SIGIR AP"
+    ],
+    "SIGIR": [
+      "International ACM SIGIR Conference",
+      "ACM SIGIR Conference",
+      "Research and Development in Information Retrieval",
+      "Research on Development in Information Retrieval"
+    ],
+    "WWW": [
+      "The Web Conference",
+      "ACM Web Conference",
+      "ACM on Web Conference",
+      "International World Wide Web Conference",
+      "International Conference on World Wide Web"
+    ],
+    "WSDM": [
+      "Web Search and Data Mining"
+    ],
+    "CIKM": [
+      "Information and Knowledge Management"
+    ],
+    "KDD": [
+      "Knowledge Discovery and Data Mining"
+    ],
+    "ICDM": [
+      "International Conference on Data Mining"
+    ],
+    "SDM": [
+      "SIAM International Conference on Data Mining",
+      "SIAM International Conference on Data Mining and Analytics"
+    ],
+    "RecSys": [
+      "ACM Conference on Recommender Systems",
+      "ACM Conference Series on Recommender Systems"
+    ],
+    "ECIR": [
+      "European Conference on Information Retrieval",
+      "European Conference on IR Research"
+    ],
+    "SIGMOD": [
+      "ACM SIGMOD International Conference on Management of Data",
+      "International Conference on Management of Data"
+    ],
+    "VLDB": [
+      "Very Large Data Bases",
+      "Very Large Data Base",
+      "Very Large Databases"
+    ],
+    "ICDE": [
+      "International Conference on Data Engineering"
+    ],
+    "PODS": [
+      "Symposium on Principles of Database Systems"
+    ],
+    "ICDT": [
+      "International Conference on Database Theory"
+    ],
+    "EDBT": [
+      "Extending Database Technology"
+    ],
+    "CIDR": [
+      "Conference on Innovative Data Systems Research"
+    ],
+    "DASFAA": [
+      "Database Systems for Advanced Applications"
+    ],
+    "PAKDD": [
+      "Pacific Asia Conference on Knowledge Discovery and Data Mining"
+    ],
+    "ISWC": [
+      "International Semantic Web Conference"
+    ],
+    "ESWC": [
+      "Extended Semantic Web Conference",
+      "European Semantic Web Conference"
+    ],
+    "ICAIF": [
+      "ACM International Conference on AI in Finance"
+    ],
+    "SOSP": [
+      "Symposium on Operating Systems Principles"
+    ],
+    "OSDI": [
+      "Operating Systems Design and Implementation",
+      "Operating Systems Design and Implementations"
+    ],
+    "NSDI": [
+      "Networked Systems Design and Implementation"
+    ],
+    "USENIX ATC": [
+      "USENIX Annual Technical Conference"
+    ],
+    "FAST": [
+      "Conference on File and Storage Technologies"
+    ],
+    "EuroSys": [
+      "European Conference on Computer Systems"
+    ],
+    "SoCC": [
+      "Symposium on Cloud Computing"
+    ],
+    "ASPLOS": [
+      "Architectural Support for Programming Languages and Operating Systems"
+    ],
+    "ISCA": [
+      "International Symposium on Computer Architecture"
+    ],
+    "MICRO": [
+      "International Symposium on Microarchitecture"
+    ],
+    "HPCA": [
+      "High Performance Computer Architecture"
+    ],
+    "PPoPP": [
+      "Principles and Practice of Parallel Programming"
+    ],
+    "SC": [
+      "International Conference for High Performance Computing Networking Storage and Analysis",
+      "Supercomputing"
+    ],
+    "ICS": [
+      "International Conference on Supercomputing"
+    ],
+    "IPDPS": [
+      "International Parallel and Distributed Processing Symposium"
+    ],
+    "SIGCOMM": [
+      "ACM SIGCOMM",
+      "Applications Technologies Architectures and Protocols for Computer Communication"
+    ],
+    "INFOCOM": [
+      "IEEE Conference on Computer Communications"
+    ],
+    "MobiCom": [
+      "International Conference on Mobile Computing and Networking"
+    ],
+    "MobiSys": [
+      "Mobile Systems Applications and Services"
+    ],
+    "SenSys": [
+      "Embedded Networked Sensor Systems"
+    ],
+    "CoNEXT": [
+      "Emerging Networking Experiments and Technologies"
+    ],
+    "IMC": [
+      "Internet Measurement Conference"
+    ],
+    "CCS": [
+      "ACM Conference on Computer and Communications Security",
+      "ACM SIGSAC Conference on Computer and Communications Security"
+    ],
+    "IEEE S&P": [
+      "IEEE Symposium on Security and Privacy",
+      "IEEE S P"
+    ],
+    "USENIX Security": [
+      "USENIX Security Symposium"
+    ],
+    "NDSS": [
+      "Network and Distributed System Security"
+    ],
+    "ESORICS": [
+      "European Symposium on Research in Computer Security"
+    ],
+    "RAID": [
+      "Research in Attacks Intrusions and Defenses",
+      "Recent Advances in Intrusion Detection"
+    ],
+    "ACSAC": [
+      "Annual Computer Security Applications Conference"
+    ],
+    "AsiaCCS": [
+      "Asia Conference on Computer and Communications Security"
+    ],
+    "ICSE": [
+      "International Conference on Software Engineering"
+    ],
+    "FSE": [
+      "Foundations of Software Engineering",
+      "Foundations of Software Engineering Symposium",
+      "ESEC FSE"
+    ],
+    "ASE": [
+      "International Conference on Automated Software Engineering"
+    ],
+    "ISSTA": [
+      "International Symposium on Software Testing and Analysis"
+    ],
+    "ICSME": [
+      "International Conference on Software Maintenance and Evolution"
+    ],
+    "MSR": [
+      "Mining Software Repositories"
+    ],
+    "PLDI": [
+      "Programming Language Design and Implementation"
+    ],
+    "POPL": [
+      "Principles of Programming Languages"
+    ],
+    "OOPSLA": [
+      "Object Oriented Programming Systems Languages and Applications"
+    ],
+    "ICFP": [
+      "International Conference on Functional Programming"
+    ],
+    "ECOOP": [
+      "European Conference on Object Oriented Programming"
+    ],
+    "CAV": [
+      "Computer Aided Verification"
+    ],
+    "TACAS": [
+      "Tools and Algorithms for the Construction and Analysis of Systems"
+    ],
+    "LICS": [
+      "Logic in Computer Science"
+    ],
+    "STOC": [
+      "Symposium on Theory of Computing"
+    ],
+    "FOCS": [
+      "Symposium on Foundations of Computer Science"
+    ],
+    "SODA": [
+      "Symposium on Discrete Algorithms"
+    ],
+    "ICALP": [
+      "International Colloquium on Automata Languages and Programming"
+    ],
+    "CHI": [
+      "Human Factors in Computing Systems"
+    ],
+    "UIST": [
+      "User Interface Software and Technology"
+    ],
+    "CSCW": [
+      "Computer Supported Cooperative Work and Social Computing",
+      "Computer Supported Cooperative Work"
+    ],
+    "UbiComp": [
+      "Pervasive and Ubiquitous Computing"
+    ],
+    "IUI": [
+      "Intelligent User Interfaces"
+    ],
+    "ISMAR": [
+      "International Symposium on Mixed and Augmented Reality"
+    ],
+    "IEEE VR": [
+      "IEEE Conference on Virtual Reality and 3D User Interfaces",
+      "IEEE Virtual Reality"
+    ],
+    "DAC": [
+      "Design Automation Conference"
+    ],
+    "DATE": [
+      "Design Automation and Test in Europe"
+    ],
+    "ICCAD": [
+      "International Conference on Computer Aided Design"
+    ]
+  },
+  "journals": {
+    "TPAMI": {
+      "abbreviation": "IEEE Trans. Pattern Anal. Mach. Intell.",
+      "aliases": [
+        "IEEE Transactions on Pattern Analysis and Machine Intelligence",
+        "PAMI"
+      ]
+    },
+    "TKDE": {
+      "abbreviation": "IEEE Trans. Knowl. Data Eng.",
+      "aliases": [
+        "IEEE Transactions on Knowledge and Data Engineering"
+      ]
+    },
+    "TNNLS": {
+      "abbreviation": "IEEE Trans. Neural Netw. Learn. Syst.",
+      "aliases": [
+        "IEEE Transactions on Neural Networks and Learning Systems"
+      ]
+    },
+    "TIP": {
+      "abbreviation": "IEEE Trans. Image Process.",
+      "aliases": [
+        "IEEE Transactions on Image Processing"
+      ]
+    },
+    "TMM": {
+      "abbreviation": "IEEE Trans. Multimed.",
+      "aliases": [
+        "IEEE Transactions on Multimedia"
+      ]
+    },
+    "TVCG": {
+      "abbreviation": "IEEE Trans. Vis. Comput. Graph.",
+      "aliases": [
+        "IEEE Transactions on Visualization and Computer Graphics"
+      ]
+    },
+    "TASLP": {
+      "abbreviation": "IEEE/ACM Trans. Audio Speech Lang. Process.",
+      "aliases": [
+        "IEEE ACM Transactions on Audio Speech and Language Processing",
+        "IEEE Transactions on Audio Speech and Language Processing"
+      ]
+    },
+    "TSP": {
+      "abbreviation": "IEEE Trans. Signal Process.",
+      "aliases": [
+        "IEEE Transactions on Signal Processing"
+      ]
+    },
+    "TCSVT": {
+      "abbreviation": "IEEE Trans. Circuits Syst. Video Technol.",
+      "aliases": [
+        "IEEE Transactions on Circuits and Systems for Video Technology"
+      ]
+    },
+    "TRO": {
+      "abbreviation": "IEEE Trans. Robot.",
+      "aliases": [
+        "IEEE Transactions on Robotics"
+      ]
+    },
+    "TSE": {
+      "abbreviation": "IEEE Trans. Softw. Eng.",
+      "aliases": [
+        "IEEE Transactions on Software Engineering"
+      ]
+    },
+    "TC": {
+      "abbreviation": "IEEE Trans. Comput.",
+      "aliases": [
+        "IEEE Transactions on Computers"
+      ]
+    },
+    "TPDS": {
+      "abbreviation": "IEEE Trans. Parallel Distrib. Syst.",
+      "aliases": [
+        "IEEE Transactions on Parallel and Distributed Systems"
+      ]
+    },
+    "TDSC": {
+      "abbreviation": "IEEE Trans. Dependable Secure Comput.",
+      "aliases": [
+        "IEEE Transactions on Dependable and Secure Computing"
+      ]
+    },
+    "TIFS": {
+      "abbreviation": "IEEE Trans. Inf. Forensics Secur.",
+      "aliases": [
+        "IEEE Transactions on Information Forensics and Security"
+      ]
+    },
+    "TMC": {
+      "abbreviation": "IEEE Trans. Mob. Comput.",
+      "aliases": [
+        "IEEE Transactions on Mobile Computing"
+      ]
+    },
+    "TON": {
+      "abbreviation": "IEEE/ACM Trans. Netw.",
+      "aliases": [
+        "IEEE ACM Transactions on Networking",
+        "IEEE Transactions on Networking"
+      ]
+    },
+    "TCC": {
+      "abbreviation": "IEEE Trans. Cloud Comput.",
+      "aliases": [
+        "IEEE Transactions on Cloud Computing"
+      ]
+    },
+    "TSC": {
+      "abbreviation": "IEEE Trans. Serv. Comput.",
+      "aliases": [
+        "IEEE Transactions on Services Computing"
+      ]
+    },
+    "TOIS": {
+      "abbreviation": "ACM Trans. Inf. Syst.",
+      "aliases": [
+        "ACM Transactions on Information Systems"
+      ]
+    },
+    "TOG": {
+      "abbreviation": "ACM Trans. Graph.",
+      "aliases": [
+        "ACM Transactions on Graphics"
+      ]
+    },
+    "TODS": {
+      "abbreviation": "ACM Trans. Database Syst.",
+      "aliases": [
+        "ACM Transactions on Database Systems"
+      ]
+    },
+    "TOCS": {
+      "abbreviation": "ACM Trans. Comput. Syst.",
+      "aliases": [
+        "ACM Transactions on Computer Systems"
+      ]
+    },
+    "TOPLAS": {
+      "abbreviation": "ACM Trans. Program. Lang. Syst.",
+      "aliases": [
+        "ACM Transactions on Programming Languages and Systems"
+      ]
+    },
+    "TOSEM": {
+      "abbreviation": "ACM Trans. Softw. Eng. Methodol.",
+      "aliases": [
+        "ACM Transactions on Software Engineering and Methodology"
+      ]
+    },
+    "TISSEC": {
+      "abbreviation": "ACM Trans. Inf. Syst. Secur.",
+      "aliases": [
+        "ACM Transactions on Information and System Security"
+      ]
+    },
+    "TOPS": {
+      "abbreviation": "ACM Trans. Priv. Secur.",
+      "aliases": [
+        "ACM Transactions on Privacy and Security"
+      ]
+    },
+    "TIST": {
+      "abbreviation": "ACM Trans. Intell. Syst. Technol.",
+      "aliases": [
+        "ACM Transactions on Intelligent Systems and Technology"
+      ]
+    },
+    "TKDD": {
+      "abbreviation": "ACM Trans. Knowl. Discov. Data",
+      "aliases": [
+        "ACM Transactions on Knowledge Discovery from Data"
+      ]
+    },
+    "TOMM": {
+      "abbreviation": "ACM Trans. Multimed. Comput. Commun. Appl.",
+      "aliases": [
+        "ACM Transactions on Multimedia Computing Communications and Applications"
+      ]
+    },
+    "TOS": {
+      "abbreviation": "ACM Trans. Storage",
+      "aliases": [
+        "ACM Transactions on Storage"
+      ]
+    },
+    "TACO": {
+      "abbreviation": "ACM Trans. Archit. Code Optim.",
+      "aliases": [
+        "ACM Transactions on Architecture and Code Optimization"
+      ]
+    },
+    "TWEB": {
+      "abbreviation": "ACM Trans. Web",
+      "aliases": [
+        "ACM Transactions on the Web"
+      ]
+    },
+    "TOCHI": {
+      "abbreviation": "ACM Trans. Comput. Hum. Interact.",
+      "aliases": [
+        "ACM Transactions on Computer Human Interaction"
+      ]
+    },
+    "CSUR": {
+      "abbreviation": "ACM Comput. Surv.",
+      "aliases": [
+        "ACM Computing Surveys"
+      ]
+    },
+    "CACM": {
+      "abbreviation": "Commun. ACM",
+      "aliases": [
+        "Communications of the ACM"
+      ]
+    },
+    "JACM": {
+      "abbreviation": "J. ACM",
+      "aliases": [
+        "Journal of the ACM"
+      ]
+    },
+    "JMLR": {
+      "abbreviation": "J. Mach. Learn. Res.",
+      "aliases": [
+        "Journal of Machine Learning Research"
+      ]
+    },
+    "TMLR": {
+      "abbreviation": "Trans. Mach. Learn. Res.",
+      "aliases": [
+        "Transactions on Machine Learning Research"
+      ]
+    },
+    "TACL": {
+      "abbreviation": "Trans. Assoc. Comput. Linguist.",
+      "aliases": [
+        "Transactions of the Association for Computational Linguistics"
+      ]
+    },
+    "CL": {
+      "abbreviation": "Comput. Linguist.",
+      "aliases": [
+        "Computational Linguistics"
+      ]
+    },
+    "JAIR": {
+      "abbreviation": "J. Artif. Intell. Res.",
+      "aliases": [
+        "Journal of Artificial Intelligence Research"
+      ]
+    },
+    "AIJ": {
+      "abbreviation": "Artif. Intell.",
+      "aliases": [
+        "Artificial Intelligence"
+      ]
+    },
+    "MLJ": {
+      "abbreviation": "Mach. Learn.",
+      "aliases": [
+        "Machine Learning"
+      ]
+    },
+    "IJCV": {
+      "abbreviation": "Int. J. Comput. Vis.",
+      "aliases": [
+        "International Journal of Computer Vision"
+      ]
+    },
+    "PR": {
+      "abbreviation": "Pattern Recognit.",
+      "aliases": [
+        "Pattern Recognition"
+      ]
+    },
+    "PRL": {
+      "abbreviation": "Pattern Recognit. Lett.",
+      "aliases": [
+        "Pattern Recognition Letters"
+      ]
+    },
+    "NN": {
+      "abbreviation": "Neural Netw.",
+      "aliases": [
+        "Neural Networks"
+      ]
+    },
+    "Neurocomputing": {
+      "abbreviation": "Neurocomputing",
+      "aliases": []
+    },
+    "INS": {
+      "abbreviation": "Inf. Sci.",
+      "aliases": [
+        "Information Sciences"
+      ]
+    },
+    "KBS": {
+      "abbreviation": "Knowl. Based Syst.",
+      "aliases": [
+        "Knowledge Based Systems"
+      ]
+    },
+    "ESWA": {
+      "abbreviation": "Expert Syst. Appl.",
+      "aliases": [
+        "Expert Systems with Applications"
+      ]
+    },
+    "DKE": {
+      "abbreviation": "Data Knowl. Eng.",
+      "aliases": [
+        "Data and Knowledge Engineering"
+      ]
+    },
+    "DMKD": {
+      "abbreviation": "Data Min. Knowl. Discov.",
+      "aliases": [
+        "Data Mining and Knowledge Discovery"
+      ]
+    },
+    "VLDBJ": {
+      "abbreviation": "VLDB J.",
+      "aliases": [
+        "The VLDB Journal",
+        "VLDB Journal"
+      ]
+    },
+    "PVLDB": {
+      "abbreviation": "Proc. VLDB Endow.",
+      "aliases": [
+        "Proceedings of the VLDB Endowment"
+      ]
+    },
+    "PACMMOD": {
+      "abbreviation": "Proc. ACM Manag. Data",
+      "aliases": [
+        "Proceedings of the ACM on Management of Data"
+      ]
+    },
+    "PACMPL": {
+      "abbreviation": "Proc. ACM Program. Lang.",
+      "aliases": [
+        "Proceedings of the ACM on Programming Languages"
+      ]
+    },
+    "PACMHCI": {
+      "abbreviation": "Proc. ACM Hum. Comput. Interact.",
+      "aliases": [
+        "Proceedings of the ACM on Human Computer Interaction"
+      ]
+    },
+    "IMWUT": {
+      "abbreviation": "Proc. ACM Interact. Mob. Wearable Ubiquitous Technol.",
+      "aliases": [
+        "Proceedings of the ACM on Interactive Mobile Wearable and Ubiquitous Technologies"
+      ]
+    },
+    "SCIS": {
+      "abbreviation": "Sci. China Inf. Sci.",
+      "aliases": [
+        "Science China Information Sciences"
+      ]
+    },
+    "DSE": {
+      "abbreviation": "Data Sci. Eng.",
+      "aliases": [
+        "Data Science and Engineering"
+      ]
+    },
+    "HCC": {
+      "abbreviation": "High-Confid. Comput.",
+      "aliases": [
+        "High Confidence Computing"
+      ]
+    },
+    "FCS": {
+      "abbreviation": "Front. Comput. Sci.",
+      "aliases": [
+        "Frontiers of Computer Science"
+      ]
+    },
+    "JCSS": {
+      "abbreviation": "J. Comput. Syst. Sci.",
+      "aliases": [
+        "Journal of Computer and System Sciences"
+      ]
+    },
+    "TCS": {
+      "abbreviation": "Theor. Comput. Sci.",
+      "aliases": [
+        "Theoretical Computer Science"
+      ]
+    },
+    "IEEE Access": {
+      "abbreviation": "IEEE Access",
+      "aliases": []
+    },
+    "计算机学报": {
+      "abbreviation": "计算机学报",
+      "aliases": [
+        "Chinese Journal of Computers"
+      ]
+    },
+    "软件学报": {
+      "abbreviation": "软件学报",
+      "aliases": [
+        "Journal of Software"
+      ]
+    },
+    "计算机研究与发展": {
+      "abbreviation": "计算机研究与发展",
+      "aliases": [
+        "Journal of Computer Research and Development"
+      ]
+    }
+  }
+}
