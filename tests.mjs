@@ -3,30 +3,40 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 const read = name => fs.readFile(new URL(name, import.meta.url), 'utf8');
 export async function runTests() {
-  const timers = [], registrations = [], notices = [], prefs = new Map([['csvenues.auto', true]]);
+  const timers = [], registrations = [], unregisteredColumns = [], notices = [], requests = [];
+  const prefs = new Map([['csvenues.auto', true]]);
   const items = new Map();
-  let observer, saves = 0, undo = 0, errors = 0;
+  let observer, mockResponse, saves = 0, undo = 0, errors = 0, refreshes = 0, now = 100000;
+  const TestDate = class extends Date {static now() {return now;}};
   const Zotero = {
     Prefs: {get: k => prefs.get(k), set: (k, v) => prefs.set(k, v)},
     Libraries: {userLibraryID: 1, get: id => ({editable: id === 1})},
     Items: {get: id => items.get(id), getAsync: async ids => ids.map(id => items.get(id)), getAll: async () => [...items.values()]},
     ftl: {addResourceIds() {}, removeResourceIds() {}},
-    getMainWindows: () => [], logError: () => errors++,
-    ItemTreeManager: {registerColumn: o => { registrations.push(o); return 'column'; }, unregisterColumn() {}},
+    getMainWindows: () => [], logError: () => errors++, debug() {},
+    ItemTreeManager: {registerColumn: o => { registrations.push(o); return o.dataKey; },
+      unregisterColumn: key => unregisteredColumns.push(key), refreshColumns: () => refreshes++},
     MenuManager: {registerMenu: o => {registrations.push(o); return o.menuID;}, unregisterMenu() {}},
     Notifier: {registerObserver: o => {observer = o; return 'observer';}, unregisterObserver: () => {observer = null;}},
     DB: {executeTransaction: async fn => fn()},
-    UndoHistory: {stageAction: () => undo++}
+    UndoHistory: {stageAction: () => undo++},
+    Promise: {delay: async ms => {now += ms;}},
+    Utilities: {cleanTags: text => text.replace(/<[^>]+>/g, ''), unescapeHTML: text => text.replaceAll('&amp;', '&')},
+    HTTP: {request: async (method, url, options) => {
+      requests.push({method, url, options, now});
+      return mockResponse(url);
+    }}
   };
   const Components = {classes: {'@mozilla.org/timer;1': {createInstance: () => ({
     cancel() {this.cancelled = true;}, initWithCallback(fn) {this.fn = fn; timers.push(this);}
   })}}, interfaces: {nsITimer: {TYPE_ONE_SHOT: 0}}};
   const Services = {prompt: {alert: (_, title, msg) => notices.push(msg)}};
-  const ctx = vm.createContext({Zotero, Components, Services});
+  const ctx = vm.createContext({Zotero, Components, Services, Date: TestDate});
   vm.runInContext(await read('config.js'), ctx, {filename: 'config.js'});
   ctx.CS_VENUES = ctx.CSVenueConfig.parse(JSON.parse(await read('venues.json')));
-  for (const name of ['matcher.js', 'main.js']) vm.runInContext(await read(name), ctx, {filename: name});
-  const M = ctx.CSMatcher, app = ctx.CSVenueApp;
+  for (const name of ['matcher.js', 'arxiv.js', 'main.js']) vm.runInContext(await read(name), ctx, {filename: name});
+  const M = ctx.CSMatcher, A = ctx.CSArxiv, app = ctx.CSVenueApp;
+  const plugin = JSON.parse(await read('manifest.json')).applications.zotero;
   let checks = 0;
   const eq = (actual, expected, message) => {assert.equal(actual, expected, message); checks++;};
   const customConfig = {conferences: {EXCONF: ['Example Conference on Computing']}, journals: {EXJ: {abbreviation:'Ex. J. Comput.', aliases:['Example Journal of Computing']}}};
@@ -101,6 +111,76 @@ export async function runTests() {
   eq(M.display({...conference('ACL 2026'), url:'https://arxiv.org/abs/2605.12345'}), 'ACL 2026', 'published venue wins');
   eq(M.display({...journal('Unlisted Published Journal'), url:'https://arxiv.org/abs/2605.12345'}), '', 'unknown publication is not arXiv-only');
   eq(M.display({...journal('arXiv e-prints'), date:'2026'}), 'arXiv 2026');
+  const title = 'Understanding Systems';
+  for (const [data, expected] of [
+    [{...conference('ICLR'), date:'2026-05-06'}, '[26 ICLR]'],
+    [conference('2025 IEEE/ACM International Conference on Software Engineering'), '[25 ICSE]'],
+    [{...journal('IEEE Transactions on Dependable and Secure Computing'), date:'2026'}, '[26 TDSC]'],
+    [{...conference('Unknown'), date:'2004'}, '[04]'],
+    [conference('ICSE'), '[ICSE]'],
+    [journal('Unknown'), ''],
+    [{itemType:'book', date:'1999'}, '[99]'],
+    [{itemType:'preprint', repository:'arXiv', date:'2026'}, '[26 arXiv]'],
+    [{...conference('ICSE'), date:'2025', extra:'csVenueOverride: Custom 2027'}, '[27 Custom]'],
+    [{...conference('ICSE'), date:'2025', extra:'csVenueOverride: 2027'}, '[27]'],
+    [{...conference('ICSE'), date:'2025', extra:'csVenueOverride: Custom (2027)'}, '[27 Custom]']
+  ]) eq(M.displayTitle({...data, title}), expected ? `${expected} ${title}` : title, JSON.stringify(data));
+  const iclr = {...conference('ICLR'), date:'2026'};
+  for (const [data, input, output] of [
+    [iclr, '[26 ICLR] Existing title', '[26 ICLR] Existing title'],
+    [iclr, '[25 ICSE] Existing title', '[26 ICLR] Existing title'],
+    [iclr, '[26 ICLR] [26 ICLR] Existing title', '[26 ICLR] Existing title'],
+    [iclr, '[26] Existing title', '[26 ICLR] Existing title'],
+    [iclr, '[ICLR] Existing title', '[26 ICLR] Existing title'],
+    [iclr, '[26 ICLR] [Survey] Existing title', '[26 ICLR] [Survey] Existing title'],
+    [iclr, '[26 Findings of ACL] Existing title', '[26 ICLR] Existing title'],
+    [iclr, '[25] Existing title', '[26 ICLR] [25] Existing title'],
+    [iclr, '[26 Samples] Existing title', '[26 ICLR] [26 Samples] Existing title'],
+    [journal('Unknown'), '[26 ICLR] Existing title', '[26 ICLR] Existing title'],
+    [conference('ICLR'), '[26 ICLR] Existing title', '[26 ICLR] Existing title'],
+    [{...journal('Unknown'), date:'2027'}, '[26 ICLR] Existing title', '[27 ICLR] Existing title'],
+    [{...iclr, extra:'csVenueOverride: Custom 2027'}, '[26 ICLR] Existing title', '[27 Custom] Existing title'],
+    [{...iclr, extra:'csVenueOverride: Custom 2027'}, '[27 Custom] Existing title', '[27 Custom] Existing title']
+  ]) eq(M.displayTitle({...data, title:input}), output, input);
+  eq(M.displayTitle({...conference('ICSE'), date:'2025'}), '', 'missing title does not render a prefix on its own');
+  for (const [data, expected] of [
+    [{archiveID:'arXiv:2605.12345v2'}, '2605.12345'],
+    [{archiveID:'HEP-EX/0307015v3'}, 'hep-ex/0307015'],
+    [{url:'https://arxiv.org/pdf/0706.0001v1.pdf?download=1'}, '0706.0001'],
+    [{url:'https://arxiv.org/html/2605.12345v2#sec-1'}, '2605.12345'],
+    [{url:'https://export.arxiv.org/abs/math.gt/0307015/'}, 'math.GT/0307015'],
+    [{DOI:'https://doi.org/10.48550/arXiv.2605.12345'}, '2605.12345'],
+    [{extra:'Citation Key: keep\narXiv:2605.12345 [cs.SE]'}, '2605.12345'],
+    [{number:'arXiv:2605.12345'}, '2605.12345'],
+    [{number:'2605.12345'}, ''],
+    [{url:'https://arxiv.org.example.com/abs/2605.12345'}, ''],
+    [{archiveID:'2613.12345'}, ''],
+    [{archiveID:'2605.12345vX'}, ''],
+    [{DOI:'10.5555/arxiv.2605.12345'}, '']
+  ]) eq(M.arxivID(data), expected, JSON.stringify(data));
+  const draft = {itemType:'preprint', repository:'arXiv', date:'2026', title};
+  for (const [comment, reference, expected] of [
+    ['ICLR 2026', '', '[26 ICLR]'],
+    ['Accepted to ICSE 2027', '', '[27 ICSE]'],
+    ['To appear in ACM CCS 2026', '', '[26 CCS]'],
+    ['Published in IEEE TSE, 2025', '', '[25 TSE]'],
+    ['Accepted at ICML', '', '[26 ICML]'],
+    ['23 pages, accepted for presentation at ICSE 2027', '', '[27 ICSE]'],
+    ['Accepted to ICSE (code released in 2025)', '', '[26 ICSE]'],
+    ['Submitted to ICML 2026', '', '[26 arXiv]'],
+    ['', 'Under Review at ICML 2026', '[26 arXiv]'],
+    ['Not accepted at ICLR 2026', '', '[26 arXiv]'],
+    ['To be submitted to ICML 2026', '', '[26 arXiv]'],
+    ['12 pages, 5 figures', '', '[26 arXiv]'],
+    ['ICLR 2026 reviewer response', '', '[26 arXiv]'],
+    ['', '', '[26 arXiv]'],
+    ['', 'IEEE Trans. Softw. Eng., 51(3):123–131 (2025)', '[25 TSE]'],
+    ['Accepted to ICSE 2027', 'IEEE Transactions on Software Engineering (2025)', '[25 TSE]'],
+    ['Accepted to ICSE 2027', 'ICSE', '[27 ICSE]'],
+    ['Submitted to ICML 2026. Accepted at ICLR 2027', '', '[27 ICLR]'],
+    ['Accepted to ICSE 2027; accepted at ICLR 2026', '', '[26 arXiv]'],
+    ['Accepted to ICSE 2025 or 2027', '', '[26 ICSE]']
+  ]) eq(M.displayTitle(draft, A.recognize([comment], [reference])), `${expected} ${title}`, `${comment} | ${reference}`);
   const mixed = {...conference('ICLR 2024 Workshop on Reliable and Responsible Foundation Models', 'Findings of the Association for Computational Linguistics ACL 2024'), date:'2024'};
   const confirmed = {...mixed, DOI:'10.18653/v1/2024.findings-acl.212'};
   eq(M.display(confirmed), 'Findings of ACL 2024');
@@ -143,15 +223,29 @@ export async function runTests() {
   eq(M.setExtra('shortConferenceName: \nCitation Key: k\nshortConferenceName: ', 'ICML'), 'Citation Key: k\nshortConferenceName: ICML');
   eq(M.plan(conference('ICLR', 'ICML')).conflict, true);
   function makeItem(id, data, libraryID = 1) {
-    const item = {id, libraryID, itemType: data.itemType, data: {...data}, deleted: false,
+    const item = {id, key: `item-${id}`, libraryID, itemType: data.itemType, data: {...data}, deleted: false,
       getField: f => item.data[f] || '', setField: (f, v) => {item.data[f] = v;},
+      loadDataType: async () => {}, getNotes: () => item.data.notes || [], getNote: () => item.data.note,
       save: async () => {saves++; observer?.notify('modify', 'item', [id]);},
       saveTx: async options => {await item.save(); if (options?.undoAction) undo++;}
     };
     items.set(id, item); return item;
   }
-  await app.start('cs-venues@local.tools');
-  eq(registrations.length, 3, 'column and two menus registered');
+  await app.start(plugin.id);
+  eq(registrations.length, 4, 'two native columns and two menus registered');
+  const [venueColumn, titleColumn] = registrations;
+  eq(titleColumn.label, 'CS Title'); eq(titleColumn.showInColumnPicker, true); eq(titleColumn.hidden, true);
+  eq(venueColumn.label, 'CS 缩写');
+  const existingPrefixed = makeItem(200, {...iclr, title:'[25 ICSE] Existing title'});
+  eq(titleColumn.dataProvider(existingPrefixed), '[26 ICLR] Existing title');
+  eq(existingPrefixed.getField('title'), '[25 ICSE] Existing title');
+  eq(saves, 0, 'display deduplication must not write Zotero items');
+  eq(plugin.id === 'cs-venues@local.tools', false);
+  eq(plugin.strict_min_version, '10.0'); eq(plugin.strict_max_version, '10.0.*');
+  eq(plugin.update_url, 'https://raw.githubusercontent.com/flyboss/zotero-cs-venues/main/updates.json',
+    'Zotero requires an update URL and it must target the fork');
+  const updateManifest = JSON.parse(await read('updates.json'));
+  assert.deepEqual(updateManifest.addons, {[plugin.id]: {updates: []}}); checks++;
   const a = makeItem(1, {...conference('ICLR'), extra: 'Citation Key: keep'});
   const b = makeItem(2, journal('IEEE Transactions on Knowledge and Data Engineering'));
   const c = makeItem(3, {...conference('ICML'), extra: 'shortConferenceName: Manual'});
@@ -194,6 +288,7 @@ export async function runTests() {
   await app.editManual(null, [manualItem]);
   eq(suppliedPrompt, 'Legacy', 'initial edit uses existing abbreviation when conflict cannot be resolved');
   eq(app.display(manualItem), 'ICLR Workshop 2024');
+  eq(titleColumn.dataProvider(manualItem), '[24 ICLR Workshop] Manual editing test');
   eq(manualItem.data.extra, 'Citation Key: preserve\nshortConferenceName: Legacy\ncsVenueOverride: ICLR Workshop');
   eq(saves, beforeManualSaves + 1); eq(undo, beforeManualUndo + 1);
   eq((await app.apply([manualItem], false)).preserved, 1);
@@ -206,6 +301,7 @@ export async function runTests() {
   await app.resetManual(null, [manualItem]);
   eq(manualItem.data.extra, 'Citation Key: preserve\nshortConferenceName: Legacy');
   eq(app.display(manualItem).startsWith('⚠ 会议冲突'), true, 'reset restores original conflict');
+  eq(titleColumn.dataProvider(manualItem), '[24] Manual editing test');
   eq(undo, beforeManualUndo + 2);
   await app.resetManual(null, [manualItem]); eq(saves, beforeManualSaves + 2, 'reset is idempotent');
   await app.saveManual(preprint, 'Draft 2027'); eq(app.display(preprint), 'Draft 2027');
@@ -216,21 +312,114 @@ export async function runTests() {
   await assert.rejects(app.saveManual(failedItem, 'Custom'), /simulated storage failure/); checks++;
   eq(failedItem.data.extra, 'Citation Key: original', 'failed save restores in-memory Extra');
   eq(app.writing.size, 0);
+  const atom = 'http://www.w3.org/2005/Atom', arxiv = 'http://arxiv.org/schemas/atom';
+  function atomResponse(id, comment, reference) {
+    const fields = new Map([
+      [`${atom} id`, `http://arxiv.org/abs/${id}v1`], [`${arxiv} comment`, comment], [`${arxiv} journal_ref`, reference]
+    ]);
+    const entry = {getElementsByTagNameNS: (ns, name) => {
+      const textContent = fields.get(`${ns} ${name}`);
+      return textContent ? [{textContent}] : [];
+    }};
+    return {responseXML: {getElementsByTagNameNS: (ns, name) => ns === atom && name === 'entry' ? [entry] : []}};
+  }
+  let finishFirstRequest;
+  const networkStarted = new Promise(resolve => {finishFirstRequest = resolve;});
+  let releaseFirstRequest;
+  mockResponse = url => {
+    const id = new URL(url).searchParams.get('id_list');
+    if (id === '2605.00001') return new Promise(resolve => {
+      releaseFirstRequest = () => resolve(atomResponse(id, 'Submitted to ICML 2026', 'IEEE TSE, 2025'));
+      finishFirstRequest();
+    });
+    if (id === '2605.00002') throw new Error('simulated offline');
+    if (id === '2605.00008') return atomResponse('2605.99999', 'Accepted to ICSE 2027', '');
+    if (id === '2605.00009') return {responseXML: null};
+    if (id === '2605.00010') return atomResponse(id, 'Accepted to ICSE 2027', '');
+    throw new Error(`Unexpected lookup for ${id}`);
+  };
+  const preprintWithID = (itemID, id, fields = {}) => makeItem(itemID, {...draft, archiveID:id, ...fields});
+  const fromAPI = preprintWithID(100, '2605.00001');
+  const offline = preprintWithID(101, '2605.00002');
+  const duplicate = preprintWithID(102, '2605.00001v2');
+  const withExtra = preprintWithID(103, '2605.00003', {extra:'arXiv Comments: ICLR 2026'});
+  const withNote = preprintWithID(104, '2605.00004', {notes:[105]});
+  const note = makeItem(105, {itemType:'note', note:'<div><p>Comment: Accepted to ICSE 2027</p></div>'});
+  const existing = preprintWithID(106, '2605.00005');
+  const synced = preprintWithID(107, '2605.00006');
+  const wrongEntry = preprintWithID(108, '2605.00008');
+  const malformed = preprintWithID(109, '2605.00009');
+  const fromAPIComment = preprintWithID(110, '2605.00010');
+  const withoutID = preprintWithID(111, '', {extra:'Journal Reference: ICSE 2027'});
+  const beforeImport = structuredClone(fromAPI.data), beforeImportSaves = saves;
+  observer.notify('modify', 'item', [existing.id]);
+  observer.notify('add', 'item', [synced.id], {skipAutoSync:true});
+  eq(app.pendingArxiv.size, 0, 'existing items and remote sync do not queue a lookup');
+  eq(titleColumn.dataProvider(fromAPI), `[26 arXiv] ${title}`);
+  eq(titleColumn.dataProvider(withExtra), `[26 ICLR] ${title}`);
+  eq(requests.length, 0, 'rendering reads only local data');
+  eq(observer.notify('add', 'item', [fromAPI.id, offline.id, duplicate.id, withExtra.id, withNote.id, note.id,
+    wrongEntry.id, malformed.id, fromAPIComment.id, withoutID.id]), undefined, 'notifier does not await background work');
+  timers.at(-1).fn();
+  await networkStarted;
+  await app.arxivInspection;
+  eq(requests.length, 1, 'requests are serialized');
+  eq(titleColumn.dataProvider(withNote), `[27 ICSE] ${title}`, 'translator note is used before network lookup');
+  eq(titleColumn.dataProvider(withoutID), `[27 ICSE] ${title}`, 'local evidence works without an ID');
+  releaseFirstRequest();
+  await A.tail;
+  eq(requests.length, 5, 'one lookup per uncached ID');
+  eq(requests[0].method, 'GET');
+  eq(requests[0].url, 'https://export.arxiv.org/api/query?id_list=2605.00001');
+  eq(requests[0].options.errorDelayMax, 0, 'Zotero must not retry failed HTTP requests');
+  eq(requests.slice(1).every((request, i) => request.now - requests[i].now >= 3000), true);
+  eq(titleColumn.dataProvider(fromAPI), `[25 TSE] ${title}`);
+  eq(venueColumn.dataProvider(fromAPI), 'TSE 2025');
+  eq(titleColumn.dataProvider(duplicate), `[25 TSE] ${title}`);
+  eq(titleColumn.dataProvider(fromAPIComment), `[27 ICSE] ${title}`);
+  eq(titleColumn.dataProvider(offline), `[26 arXiv] ${title}`);
+  eq(titleColumn.dataProvider(wrongEntry), `[26 arXiv] ${title}`);
+  eq(titleColumn.dataProvider(malformed), `[26 arXiv] ${title}`);
+  eq(refreshes, 5, 'successful results refresh both native columns');
+  assert.deepEqual(fromAPI.data, beforeImport); checks++;
+  eq(saves, beforeImportSaves, 'automatic arXiv processing writes no Zotero item fields');
+  await app.saveManual(fromAPI, 'Custom');
+  eq(titleColumn.dataProvider(fromAPI), `[25 Custom] ${title}`);
+  await app.saveManual(fromAPI, 'Custom 2027');
+  eq(titleColumn.dataProvider(fromAPI), `[27 Custom] ${title}`);
+  await app.resetManual(null, [fromAPI]);
+  eq(titleColumn.dataProvider(fromAPI), `[25 TSE] ${title}`);
   await app.stop(); eq(observer, null); eq(app.active, false); eq(errors, 0);
+  eq(unregisteredColumns.join(','), 'csVenue,csTitle');
   // Exercise the real bootstrap loader so JSON packaging changes cannot silently break startup.
-  const scripts = Object.fromEntries(await Promise.all(['config.js', 'matcher.js', 'main.js'].map(async file => [file, await read(file)])));
+  const scripts = Object.fromEntries(await Promise.all(['config.js', 'matcher.js', 'arxiv.js', 'main.js'].map(async file => [file, await read(file)])));
+  const rootURI = `jar:file:///test/extensions/${plugin.id}.xpi!/`;
   let loadedJSON;
-  Zotero.File = {getContentsFromURLAsync: async uri => {loadedJSON = uri; return read('venues.json');}};
+  Zotero.File = {getResourceAsync: async uri => {loadedJSON = uri; return read('venues.json');}};
   const bootServices = {...Services, scriptloader: {loadSubScript(uri, target) {
-    const file = uri.replace('test:///', '');
+    const file = uri.slice(rootURI.length);
     assert.ok(scripts[file], `unexpected bootstrap resource: ${uri}`);
     vm.runInNewContext(scripts[file], target, {filename: file});
   }}};
   const boot = vm.createContext({Zotero, Services: bootServices, Components});
   vm.runInContext(await read('bootstrap.js'), boot);
-  await boot.startup({id:'cs-venues@local.tools', rootURI:'test:///'});
-  eq(loadedJSON, 'test:///venues.json'); eq(boot.app.active, true);
+  await boot.startup({id:plugin.id, rootURI});
+  eq(loadedJSON, rootURI + 'venues.json'); eq(boot.app.active, true);
   eq(boot.app.display(added), 'ICML', 'bootstrap loads JSON-backed matcher');
+  eq(boot.app.display(fromAPI, true), `[25 TSE] ${title}`, 'cache survives a fresh plugin scope');
+  const retry = preprintWithID(112, '2605.00002v2');
+  observer.notify('modify', 'item', [existing.id]);
+  observer.notify('add', 'item', [retry.id]);
+  timers.at(-1).fn();
+  await boot.app.arxivInspection;
+  eq(requests.length, 5, 'persisted failure prevents retry after restart');
+  eq(boot.app.display(retry, true), `[26 arXiv] ${title}`);
+  const reimported = preprintWithID(113, '2605.00002v3', {notes:[note.id]});
+  observer.notify('add', 'item', [reimported.id]);
+  timers.at(-1).fn();
+  await boot.app.arxivInspection;
+  eq(boot.app.display(reimported, true), `[27 ICSE] ${title}`, 'new local evidence can replace a saved fallback');
+  eq(requests.length, 5);
   await boot.shutdown(); eq(boot.app, null); eq(observer, null);
   for (const name of ['bootstrap.js', 'prefs.js']) new vm.Script(await read(name), {filename: name});
   return {passed: checks, venues: ctx.CS_VENUES.length, conferences: ctx.CS_VENUES.filter(v => v.kind === 'conferencePaper').length, journals: ctx.CS_VENUES.filter(v => v.kind === 'journalArticle').length};

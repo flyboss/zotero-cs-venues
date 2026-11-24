@@ -13,14 +13,15 @@ var CSMatcher = (() => {
   const contains = (text, part) => (` ${text} `).includes(` ${part} `);
   const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const catalog = CS_VENUES.map(v => ({...v, names: v.aliases.map(normalize)}));
-  function one(text, kind) {
+  const titleVenues = new Set(["arxiv", ...catalog.map(v => normalize(v.short))]);
+  function one(text, kind, exactOnly = false) {
     const raw = String(text || "");
     const norm = normalize(raw), stripped = clean(raw);
     if (!norm) return null;
     const bare = kind === "conferencePaper" ? stripped.replace(/^(?:proceedings of (?:the )?|the )/, "").replace(/\s+(?:conference|symposium)$/, "") : stripped;
     const exact = catalog.filter(v => v.kind === kind && v.names.some(n => n === norm || n === stripped || n === bare));
     if (exact.length === 1) return exact[0];
-    if (exact.length > 1 || kind === "journalArticle") return null;
+    if (exact.length > 1 || exactOnly || kind === "journalArticle") return null;
     // An explicit venue acronym outranks a generic full name (e.g. Findings ... EACL).
     const acronyms = catalog.filter(v => v.kind === kind && v.aliases.some(alias => {
       if (!/^[A-Za-z0-9* &-]{2,18}$/.test(alias) || alias.split(/\s+/).length > 2) return false;
@@ -62,8 +63,8 @@ var CSMatcher = (() => {
     if (acronyms.length > 1 || names.length !== 1) return null;
     return specific.find(x => x.v.short === names[0]).v;
   }
-  function describe(text, kind) {
-    const hit = one(text, kind);
+  function describe(text, kind, exactOnly) {
+    const hit = one(text, kind, exactOnly);
     if (!hit) return null;
     let short = hit.short;
     if (kind === "conferencePaper") {
@@ -105,8 +106,8 @@ var CSMatcher = (() => {
     return {hit: null, candidates, conflict: true, reason: reason + "；缺少可判定的依据，跳过填充"};
   }
   function match(item) { return analyze(item).hit; }
+  const years = value => [...new Set(String(value || "").match(/\b(?:18|19|20)\d{2}\b/g) || [])];
   function year(item) {
-    const years = value => [...new Set(String(value || "").match(/\b(?:18|19|20)\d{2}\b/g) || [])];
     const dated = years(item.date);
     if (dated.length === 1) return dated[0];
     if (dated.length > 1) return "";
@@ -114,34 +115,111 @@ var CSMatcher = (() => {
     const named = years(`${item.conferenceName || ""} ${item.proceedingsTitle || ""}`);
     return named.length === 1 ? named[0] : "";
   }
-  function display(item) {
-    if (!["conferencePaper", "journalArticle", "preprint"].includes(item.itemType)) return "";
-    const override = manualValue(item.extra);
-    if (override) {
-      const value = year(item);
-      return value && !/\b(?:18|19|20)\d{2}\b/.test(override) ? `${override} ${value}` : override;
-    }
+  function venueInfo(item, publication) {
+    const originalYear = year(item);
+    const supported = ["conferencePaper", "journalArticle", "preprint"].includes(item.itemType);
+    const override = supported && manualValue(item.extra);
+    if (override) return {short: override, year: publication?.year || originalYear};
     const decision = analyze(item);
     if (decision.conflict && !decision.hit) {
-      const suffix = year(item);
-      return `⚠ 会议冲突：${decision.candidates.map(h => h.short).join(" / ")}${suffix ? " " + suffix : ""}`;
+      return {conflict: `⚠ 会议冲突：${decision.candidates.map(h => h.short).join(" / ")}`, year: originalYear};
     }
-    const short = decision.hit?.short || (item.itemType === "conferencePaper" ? extraValue(item.extra) : item.journalAbbreviation) || (isArxiv(item) ? "arXiv" : "");
+    if (decision.hit) return {short: decision.hit.short, year: decision.hit.verifiedYear || originalYear};
+    if (publication?.short && publication.short !== "arXiv") {
+      return {short: publication.short, year: publication.year || originalYear};
+    }
+    const short = isArxiv(item) ? "arXiv" : supported && (item.itemType === "conferencePaper" ? extraValue(item.extra) : item.journalAbbreviation);
+    return {short, year: originalYear};
+  }
+  function display(item, publication) {
+    const {short, conflict, year: value} = venueInfo(item, publication);
+    if (conflict) return value ? `${conflict} ${value}` : conflict;
     if (!short) return "";
-    const value = decision.hit?.verifiedYear || year(item);
     // Preserve a year already present in a manually supplied abbreviation.
     return value && !/\b(?:18|19|20)\d{2}\b/.test(short) ? `${short} ${value}` : short;
+  }
+  function displayTitle(item, publication) {
+    if (!item.title) return "";
+    const {short, year: value} = venueInfo(item, publication);
+    const embedded = years(short);
+    const labelYear = embedded.length === 1 ? embedded[0] : embedded.length ? "" : value;
+    let venue = embedded.length === 1
+      ? short.replace(new RegExp(`\\(\\s*${labelYear}\\s*\\)|\\[\\s*${labelYear}\\s*\\]|\\b${labelYear}\\b`, "g"), " ").trim().replace(/\s{2,}/g, " ")
+      : short;
+    let shortYear = labelYear?.slice(-2);
+    let title = item.title;
+    // Older items may already have a CS prefix in their stored title.
+    while (true) {
+      const leading = title.match(/^\s*\[([^\[\]\r\n]+)\]\s+(?=\S)/);
+      if (!leading) break;
+      const previous = leading[1].trim();
+      const yearMatch = previous.match(/^(\d{2})(?:\s+|$)/);
+      const previousYear = yearMatch?.[1];
+      const previousVenue = previous.slice(yearMatch?.[0].length || 0);
+      const label = normalize(previousVenue);
+      const knownVenue = label && (label === normalize(venue) || titleVenues.has(label)
+        || label === normalize(describe(previousVenue, "conferencePaper")?.short));
+      if (!knownVenue && !(previousYear && !previousVenue && previousYear === shortYear)) break;
+      shortYear ||= previousYear;
+      venue ||= previousVenue;
+      title = title.slice(leading[0].length);
+    }
+    const prefix = [shortYear, venue].filter(Boolean).join(" ");
+    return prefix ? `[${prefix}] ${title}` : title;
+  }
+  function arxivID(item) {
+    const urlID = String(item.url || "").trim().match(/^https?:\/\/(?:(?:www|export)\.)?arxiv\.org\/(?:abs|pdf|html)\/([^?#]+?)(?:\.pdf|\/)?(?:[?#].*)?$/i)?.[1];
+    const doiID = String(item.DOI || "").trim().match(/^(?:https?:\/\/(?:dx\.)?doi\.org\/|doi:\s*)?10\.48550\/arxiv\.(\S+)$/i)?.[1];
+    const extraID = String(item.extra || "").match(/^[\t ]*arxiv(?:[\t ]+id)?[\t ]*:[\t ]*(\S+)/im)?.[1];
+    const numberID = String(item.number || "").trim().match(/^arxiv\s*:\s*(.+)$/i)?.[1];
+    for (const value of [item.archiveID, numberID, doiID, urlID, extraID]) {
+      const id = String(value || "").trim().match(/^(?:arxiv\s*:\s*)?(\d{2}(?:0[1-9]|1[0-2])\.\d{4,5}|[a-z-]+(?:\.[A-Z]{2})?\/\d{2}(?:0[1-9]|1[0-2])\d{3})(?:v[1-9]\d*)?$/i)?.[1];
+      if (id) return id.toLowerCase().replace(/\.([a-z]{2})\//, (_, group) => `.${group.toUpperCase()}/`);
+    }
+    return "";
   }
   function isArxiv(item) {
     // A real, unrecognized publication venue must not be replaced by an arXiv link.
     const venues = [item.conferenceName, item.proceedingsTitle, item.publicationTitle].filter(Boolean);
     if (venues.some(v => !/^arxiv\b/i.test(String(v).trim()))) return false;
     if (/^arxiv(?:\.org)?$/i.test(String(item.repository || "").trim())) return true;
-    if (/^https?:\/\/(?:export\.)?arxiv\.org\/(?:abs|pdf|html)\//i.test(item.url || "")) return true;
+    if (arxivID(item)) return true;
+    if (/^https?:\/\/(?:(?:www|export)\.)?arxiv\.org\/(?:abs|pdf|html)\//i.test(item.url || "")) return true;
     if (/^(?:https?:\/\/(?:dx\.)?doi\.org\/)?10\.48550\/arxiv\./i.test(item.DOI || "")) return true;
     if (/^\s*arxiv\s*:\s*\S+/im.test(item.extra || "")) return true;
-    if (item.itemType === "preprint" && /^(?:arxiv\s*:\s*)?(?:\d{2}(?:0[1-9]|1[0-2])\.\d{4,5}|[a-z-]+(?:\.[A-Z]{2})?\/\d{7})(?:v\d+)?$/i.test(String(item.archiveID || "").trim())) return true;
     return venues.some(v => /^arxiv\b/i.test(String(v).trim()));
+  }
+  function publicationMatches(text, reference) {
+    const matches = [];
+    for (const clause of String(text || "").split(/\s*;\s*|[.,]\s+(?=(?:accepted|submitted|under review|published|to appear|will appear)\b)/i)) {
+      const statement = clause.trim().replace(/\s+/g, " ");
+      if (/\b(?:submitted|under (?:review|consideration)|reject(?:ed|ion)|withdrawn|(?:not|yet to be|if) (?:accepted|published)|(?:to be|will be) submitted)\b/i.test(statement)) continue;
+      const status = statement.match(/^(?:(?:this (?:paper|work|article) )?(?:has been |was |is ))?(?:accepted(?: for (?:publication|presentation))?|published|to appear|will appear|appeared|forthcoming)(?:\s*:\s*|\s+(?:(?:in|at|to|by)\s+)?)/i);
+      const citation = statement.slice(status?.[0].length || 0)
+        .replace(/\([^()]*\b(?:code|camera[- ]ready|revision|arxiv|posted|released)\b[^()]*\)/gi, " ");
+      const dated = years(citation);
+      if (!reference && !status && !dated.length) continue;
+      // A journal reference can include volume, issue and pages after its venue.
+      const names = [citation];
+      if (reference || status) {
+        const end = citation.search(/[,\s]+(?:vol(?:ume)?\.?\s*\d|no\.?\s*\d|pp?\.\s*\d|\d{1,4}\s*\(|\d+\s*[:,]\s*\d|\d+\s*[-–]\s*\d|\d{1,3}\s*$)/i);
+        if (end > 0) names.push(citation.slice(0, end));
+      }
+      for (const name of names) {
+        const exactName = name.replace(/\s+of\s+(?=(?:18|19|20)\d{2}\b)/i, " ");
+        const publisherFree = exactName.replace(/^\s*(?:ACM|IEEE)\s+/i, "");
+        const conference = describe(exactName, "conferencePaper", !status && !/^proceedings\s+of\b/i.test(exactName))
+          || describe(publisherFree, "conferencePaper", true);
+        const journal = describe(exactName, "journalArticle") || describe(publisherFree, "journalArticle");
+        if (conference && journal) break;
+        const hit = conference || journal;
+        if (hit) {
+          matches.push({short: hit.short, year: dated.length === 1 ? dated[0] : ""});
+          break;
+        }
+      }
+    }
+    return matches;
   }
   function extraValue(extra) {
     return String(extra || "").match(/^\s*shortConferenceName\s*:\s*(.*?)\s*$/im)?.[1] || "";
@@ -180,5 +258,6 @@ var CSMatcher = (() => {
     if (current) return {status: "preserved", hit, current, explanation};
     return {status: "fill", hit, field, explanation, before: item[field] || "", after: field === "extra" ? setExtra(item.extra, hit.abbr) : hit.abbr};
   }
-  return {normalize, clean, match, one, analyze, plan, year, display, isArxiv, manualValue, setManual, extraValue, setExtra, count: catalog.length};
+  return {normalize, clean, match, one, analyze, plan, year, display, displayTitle, arxivID, isArxiv,
+    publicationMatches, manualValue, setManual, extraValue, setExtra, count: catalog.length};
 })();

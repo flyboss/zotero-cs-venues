@@ -1,16 +1,16 @@
 {
   "manifest_version": 2,
-  "name": "CS Venue Abbreviations",
-  "version": "1.4.0",
-  "description": "离线识别 CS 会议和期刊，自动补全缩写，兼容 Linter 的会议缩写字段。",
+  "name": "CS Venue Abbreviations and Title",
+  "version": "1.5.2",
+  "description": "显示 CS 缩写和 CS Title，识别新导入 arXiv 论文的正式发表信息。",
   "author": "Zeyang Liu",
   "applications": {
     "zotero": {
-      "id": "cs-venues@local.tools",
-      "update_url": "https://github.com/lzy248/zotero-cs-venues/releases/latest/download/updates.json",
+      "id": "cs-venues-title@flyboss.github.io",
+      "update_url": "https://raw.githubusercontent.com/flyboss/zotero-cs-venues/main/updates.json",
       "strict_min_version": "10.0",
       "strict_max_version": "10.0.*"
     }
   },
-  "homepage_url": "https://github.com/lzy248/zotero-cs-venues"
+  "homepage_url": "https://github.com/flyboss/zotero-cs-venues"
 }

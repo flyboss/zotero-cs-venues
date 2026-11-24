@@ -4,9 +4,10 @@ function uninstall() {}
 async function startup({id, rootURI}) {
   const scope = {Zotero, Services, Components};
   Services.scriptloader.loadSubScript(rootURI + "config.js", scope);
-  const config = JSON.parse(await Zotero.File.getContentsFromURLAsync(rootURI + "venues.json"));
+  const config = JSON.parse(await Zotero.File.getResourceAsync(rootURI + "venues.json"));
   scope.CS_VENUES = scope.CSVenueConfig.parse(config);
   Services.scriptloader.loadSubScript(rootURI + "matcher.js", scope);
+  Services.scriptloader.loadSubScript(rootURI + "arxiv.js", scope);
   Services.scriptloader.loadSubScript(rootURI + "main.js", scope);
   app = scope.CSVenueApp;
   await app.start(id);

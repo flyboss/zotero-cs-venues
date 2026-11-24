@@ -1,88 +1,102 @@
 var CSVenueApp = {
   active: false,
   pending: new Set(),
+  pendingArxiv: new Set(),
   writing: new Set(),
   seen: new Map(),
   menus: [],
+  columns: [],
   tail: Promise.resolve(),
+  arxivInspection: Promise.resolve(),
   read(item) {
     const kind = item.itemType;
-    if (!["conferencePaper", "journalArticle", "preprint"].includes(kind)) return {itemType: kind};
-    const fields = kind === "conferencePaper" ? ["conferenceName", "proceedingsTitle", "extra", "date", "DOI", "url"]
-      : kind === "journalArticle" ? ["publicationTitle", "journalAbbreviation", "date", "DOI", "url", "extra"]
-      : ["repository", "archiveID", "date", "DOI", "url", "extra"];
-    const result = {itemType: kind};
-    for (const f of fields) result[f] = item.getField(f) || "";
+    if (!kind || ["note", "attachment", "annotation"].includes(kind)) return {itemType: kind};
+    const fields = kind === "conferencePaper" ? ["conferenceName", "proceedingsTitle"]
+      : kind === "journalArticle" ? ["publicationTitle", "journalAbbreviation"] : ["repository", "number"];
+    const result = {itemType: kind, date: item.getField("date", false, true) || ""};
+    for (const f of [...fields, "archiveID", "DOI", "url", "extra"]) result[f] = item.getField(f) || "";
     return result;
   },
   signature(item) {
     const data = this.read(item);
     return JSON.stringify([data.itemType, data.conferenceName, data.proceedingsTitle, data.publicationTitle, data.DOI]);
   },
-  display(item) {
+  display(item, title = false) {
     try {
       const data = this.read(item);
-      return CSMatcher.display(data);
+      const publication = CSArxiv.result(item, data);
+      if (title) {
+        data.title = item.getField("title", false, true);
+        return CSMatcher.displayTitle(data, publication);
+      }
+      return CSMatcher.display(data, publication);
     } catch (_) { return ""; }
   },
-  attach(win) { win.MozXULElement.insertFTLIfNeeded("cs-venues.ftl"); },
-  detach(win) { win.document.querySelector('[href="cs-venues.ftl"]')?.remove(); },
+  attach(win) { win.MozXULElement.insertFTLIfNeeded("cs-venues-title.ftl"); },
+  detach(win) { win.document.querySelector('[href="cs-venues-title.ftl"]')?.remove(); },
   async start(id) {
     this.id = id;
     this.active = true;
-    Zotero.ftl.addResourceIds(["cs-venues.ftl"]);
+    Zotero.ftl.addResourceIds(["cs-venues-title.ftl"]);
     for (const win of Zotero.getMainWindows()) this.attach(win);
-    this.column = Zotero.ItemTreeManager.registerColumn({
-      pluginID: id, dataKey: "csVenue", label: "CS 缩写", width: "140",
-      hidden: false, showInColumnPicker: true,
-      dataProvider: item => this.display(item)
-    });
-    if (!this.column) throw new Error("CS 缩写列注册失败，请查看 Zotero 错误日志。");
+    for (const options of [
+      {dataKey: "csVenue", label: "CS 缩写", width: "140", hidden: false, dataProvider: item => this.display(item)},
+      {dataKey: "csTitle", label: "CS Title", width: "380", hidden: true, dataProvider: item => this.display(item, true)}
+    ]) {
+      const column = Zotero.ItemTreeManager.registerColumn({pluginID: id, showInColumnPicker: true, ...options});
+      if (!column) throw new Error(`${options.label} 列注册失败，请查看 Zotero 错误日志。`);
+      this.columns.push(column);
+    }
     const command = (label, fn) => ({menuType: "menuitem", l10nID: label,
       onCommand: (event, context) => {
         const win = event.target.ownerGlobal || Zotero.getMainWindow();
         this.enqueue(() => fn(win, context)).catch(e => this.error(win, e));
       }
     });
-    this.menus.push(Zotero.MenuManager.registerMenu({pluginID: id, menuID: "cs-venues-items", target: "main/library/item", menus: [
-      command("cs-venues-preview", (win, ctx) => this.preview(win, ctx.items || win.ZoteroPane.getSelectedItems())),
-      command("cs-venues-manual", (win, ctx) => this.editManual(win, ctx.items || win.ZoteroPane.getSelectedItems())),
-      command("cs-venues-reset", (win, ctx) => this.resetManual(win, ctx.items || win.ZoteroPane.getSelectedItems())),
-      command("cs-venues-fill", (win, ctx) => this.fill(win, ctx.items || win.ZoteroPane.getSelectedItems()))
+    this.menus.push(Zotero.MenuManager.registerMenu({pluginID: id, menuID: "cs-venues-title-items", target: "main/library/item", menus: [
+      command("cs-venues-title-preview", (win, ctx) => this.preview(win, ctx.items || win.ZoteroPane.getSelectedItems())),
+      command("cs-venues-title-manual", (win, ctx) => this.editManual(win, ctx.items || win.ZoteroPane.getSelectedItems())),
+      command("cs-venues-title-reset", (win, ctx) => this.resetManual(win, ctx.items || win.ZoteroPane.getSelectedItems())),
+      command("cs-venues-title-fill", (win, ctx) => this.fill(win, ctx.items || win.ZoteroPane.getSelectedItems()))
     ]}));
-    this.menus.push(Zotero.MenuManager.registerMenu({pluginID: id, menuID: "cs-venues-tools", target: "main/menubar/tools", menus: [{
-      menuType: "submenu", l10nID: "cs-venues-menu", menus: [
-        command("cs-venues-preview", win => this.preview(win, win.ZoteroPane.getSelectedItems())),
-        command("cs-venues-manual", win => this.editManual(win, win.ZoteroPane.getSelectedItems())),
-        command("cs-venues-reset", win => this.resetManual(win, win.ZoteroPane.getSelectedItems())),
-        command("cs-venues-fill", win => this.fill(win, win.ZoteroPane.getSelectedItems())),
-        command("cs-venues-library", async win => {
+    this.menus.push(Zotero.MenuManager.registerMenu({pluginID: id, menuID: "cs-venues-title-tools", target: "main/menubar/tools", menus: [{
+      menuType: "submenu", l10nID: "cs-venues-title-menu", menus: [
+        command("cs-venues-title-preview", win => this.preview(win, win.ZoteroPane.getSelectedItems())),
+        command("cs-venues-title-manual", win => this.editManual(win, win.ZoteroPane.getSelectedItems())),
+        command("cs-venues-title-reset", win => this.resetManual(win, win.ZoteroPane.getSelectedItems())),
+        command("cs-venues-title-fill", win => this.fill(win, win.ZoteroPane.getSelectedItems())),
+        command("cs-venues-title-library", async win => {
           const items = await Zotero.Items.getAll(Zotero.Libraries.userLibraryID, true, false);
           await this.fill(win, items);
         }),
-        command("cs-venues-toggle", win => {
+        command("cs-venues-title-toggle", win => {
           const enabled = !Zotero.Prefs.get("csvenues.auto");
           Zotero.Prefs.set("csvenues.auto", enabled);
-          this.alert(win, enabled ? "已开启：新增或修改会议、期刊条目后自动补全空白缩写。" : "已暂停自动填充。仍可手动填充，CS 缩写列仍可显示识别结果。");
+          this.alert(win, enabled ? "已开启：新增或修改会议、期刊条目后自动补全空白缩写。" : "已暂停自动填充。仍可手动填充，两列照常显示识别结果。");
         }),
-        command("cs-venues-help", win => this.alert(win,
-          `离线词库：${CSMatcher.count} 个会议/期刊。\n自动填充：${Zotero.Prefs.get("csvenues.auto") ? "开启" : "关闭"}\n\n表头右键可打开「CS 缩写」列，安装后即可显示识别结果。\n手工修改：选中一篇后右键 → CS：手工设置 / 修改缩写。留空可恢复自动识别。\n已有条目：选中后右键 → CS：填充所选空白缩写。\n会议写入 Extra 的 shortConferenceName，兼容 Linter。\n期刊只补全空白的期刊缩写，保留已有内容。\nCS 列显示简称与年份（如 ACL 2026），仅 arXiv 的文献显示 arXiv 与年份。期刊缩写字段使用常见书目缩写。\n不改论文标题、会议全称、类型或已有缩写；不把 arXiv 预印本猜成已发表论文。\n手动批量填充后可用编辑 → 撤销。\n若 Linter 随后清空会议缩写，请关闭 Linter 的会议缩写规则，避免两套规则竞争。`))
+        command("cs-venues-title-help", win => this.alert(win,
+          `词库：${CSMatcher.count} 个会议/期刊。\n自动填充：${Zotero.Prefs.get("csvenues.auto") ? "开启" : "关闭"}\n\n右键表头可打开「CS 缩写」和「CS Title」，例如 ACL 2026 和 [26 ACL] 论文标题。\n新导入 arXiv 论文优先读取本地发表信息，必要时查询 arXiv 一次。结果用于两列显示。\n手工修改：选中一篇后右键 → CS：手工设置 / 修改缩写。留空可恢复自动识别。\n填充空白缩写：选中文献后右键 → CS：填充所选空白缩写。会议写入 Extra 的 shortConferenceName，兼容 Linter。期刊写入书目缩写。\n手动批量填充后可用编辑 → 撤销。\n若 Linter 随后清空会议缩写，请关闭 Linter 的会议缩写规则，避免两套规则竞争。`))
       ]
     }]}));
-    this.observer = Zotero.Notifier.registerObserver({notify: (event, type, ids) => {
-      if (!this.active || !Zotero.Prefs.get("csvenues.auto") || type !== "item" || !["add", "modify"].includes(event)) return;
+    this.observer = Zotero.Notifier.registerObserver({notify: (event, type, ids, extraData) => {
+      if (!this.active || type !== "item" || !["add", "modify"].includes(event)) return;
+      const auto = Zotero.Prefs.get("csvenues.auto");
       for (const itemID of ids) {
         const key = Number(itemID);
         const item = Zotero.Items.get(key);
         if (!item || this.writing.has(key)) continue;
+        // Remote sync also emits add notifications, including on the first sync of an existing library.
+        if (event === "add" && !extraData?.skipAutoSync && !item.deleted && CSMatcher.isArxiv(this.read(item))) {
+          this.pendingArxiv.add(key);
+        }
+        if (!auto) continue;
         const signature = this.signature(item);
         // Do not refill after undo or compete with another plugin changing Extra.
         if (this.seen.get(key) === signature) continue;
         this.pending.add(key);
       }
-      if (!this.pending.size) return;
-      this.schedule();
-    }}, ["item"], "cs-venues");
+      if (this.pending.size || this.pendingArxiv.size) this.schedule();
+    }}, ["item"], "cs-venues-title");
   },
   enqueue(fn) {
     const work = this.tail.then(() => this.active ? fn() : undefined);
@@ -95,11 +109,24 @@ var CSVenueApp = {
     this.timer.initWithCallback(() => {
       this.timer = null;
       const ids = [...this.pending]; this.pending.clear();
-      this.enqueue(async () => {
+      const arxivIDs = [...this.pendingArxiv]; this.pendingArxiv.clear();
+      if (ids.length) this.enqueue(async () => {
         if (!Zotero.Prefs.get("csvenues.auto")) return;
         const items = await Zotero.Items.getAsync(ids);
         await this.apply(items.filter(Boolean), false);
       });
+      if (arxivIDs.length) this.arxivInspection = this.arxivInspection.then(async () => {
+        if (!this.active) return;
+        const items = await Zotero.Items.getAsync(arxivIDs);
+        for (const item of items) {
+          if (!this.active) break;
+          if (!item || item.deleted) continue;
+          const data = this.read(item);
+          if (CSMatcher.isArxiv(data)) {
+            await CSArxiv.inspect(item, data, () => this.active).catch(e => Zotero.logError(e));
+          }
+        }
+      }).catch(e => Zotero.logError(e));
     }, 1500, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
   },
   eligible(item) {
@@ -124,7 +151,7 @@ var CSVenueApp = {
     this.seen.set(item.id, this.signature(item));
     try {
       item.setField("extra", after);
-      await item.saveTx({undoAction: "cs-venues-undo-manual"});
+      await item.saveTx({undoAction: "cs-venues-title-undo-manual"});
     } catch (e) {
       item.setField("extra", before);
       throw e;
@@ -136,10 +163,11 @@ var CSVenueApp = {
     if (!item) return;
     const data = this.read(item);
     const input = {value: CSMatcher.manualValue(data.extra) || CSMatcher.match(data)?.short
+      || CSArxiv.result(item, data)?.short
       || (data.itemType === "conferencePaper" ? CSMatcher.extraValue(data.extra) : data.journalAbbreviation)
       || (CSMatcher.isArxiv(data) ? "arXiv" : "")};
     const accepted = Services.prompt.prompt(win, "手工设置 CS 缩写",
-      `${item.getField("title").slice(0, 100)}\n\n输入简称（如 ACL、Findings of ACL、arXiv），年份会自动追加；也可输入完整显示文字，如 ACL 2026。\n仅设置「CS 缩写」列，优先于自动识别；不修改引用字段。\n留空并确定可恢复自动识别。`, input, null, {value: false});
+      `${item.getField("title").slice(0, 100)}\n\n输入简称（如 ACL、Findings of ACL、arXiv），年份会自动追加；也可输入完整显示文字，如 ACL 2026。\n手工值优先用于「CS 缩写」和「CS Title」。\n留空并确定可恢复自动识别。`, input, null, {value: false});
     if (!accepted) return;
     await this.saveManual(item, input.value);
   },
@@ -189,7 +217,7 @@ var CSVenueApp = {
           throw e;
         }
       }
-      if (manual && result.filled) Zotero.UndoHistory.stageAction("cs-venues-undo");
+      if (manual && result.filled) Zotero.UndoHistory.stageAction("cs-venues-title-undo");
     }).finally(() => this.writing.clear());
     return result;
   },
@@ -197,11 +225,14 @@ var CSVenueApp = {
     this.active = false;
     this.timer?.cancel(); this.timer = null;
     this.pending.clear();
+    this.pendingArxiv.clear();
     if (this.observer) Zotero.Notifier.unregisterObserver(this.observer);
     await this.tail;
-    for (const menu of this.menus) Zotero.MenuManager.unregisterMenu(menu);
-    if (this.column) Zotero.ItemTreeManager.unregisterColumn(this.column);
+    await this.arxivInspection;
+    await CSArxiv.tail;
+    for (const menu of this.menus.splice(0)) Zotero.MenuManager.unregisterMenu(menu);
+    for (const column of this.columns.splice(0)) Zotero.ItemTreeManager.unregisterColumn(column);
     for (const win of Zotero.getMainWindows()) this.detach(win);
-    Zotero.ftl.removeResourceIds(["cs-venues.ftl"]);
+    Zotero.ftl.removeResourceIds(["cs-venues-title.ftl"]);
   }
 };
